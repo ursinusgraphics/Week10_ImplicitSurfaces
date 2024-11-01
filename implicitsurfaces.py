@@ -1,10 +1,7 @@
-import sys
-
 import numpy as np
-import matplotlib.pyplot as plt
 from skimage import measure
 
-def saveOffFileExternal(filename, VPos, ITris):
+def save_off(filename, VPos, ITris):
     """
     Save OFF file given vertex and triangle buffers
     Parameters
@@ -29,7 +26,7 @@ def saveOffFileExternal(filename, VPos, ITris):
         fout.write("3 %i %i %i\n"%tuple(ITris[i, :]))
     fout.close()
 
-def getEllipsoidGaussian(x, y, z, c, v1, sigma1, v2, sigma2, v3, sigma3):
+def get_ellipsoid_gaussian(x, y, z, c, v1, sigma1, v2, sigma2, v3, sigma3):
     """
     Given a grid of points, create a multivariate Gaussian function
     with ellipsoidal cross sections
@@ -57,7 +54,7 @@ def getEllipsoidGaussian(x, y, z, c, v1, sigma1, v2, sigma2, v3, sigma3):
         Standard deviation along the third principal axis
     Returns
     -------
-    f: ndarray(M, N)
+    f: ndarray(M, N, W)
         The corresponding scalar function of the Gaussian evaluated
         at all points on the grid
     """
@@ -76,31 +73,70 @@ def getEllipsoidGaussian(x, y, z, c, v1, sigma1, v2, sigma2, v3, sigma3):
     d3 = (X.dot(v3))**2/(sigma3**2)
     return np.exp(-d1)*np.exp(-d2)*np.exp(-d3)
 
-def getBowlingPin():
-    X, Y, Z = np.mgrid[:100, :100, :100]
-    u = np.exp(-((X-70.0)**2 + (Y-70.0)**2 + (Z-70.0)**2)/(2.0*6.0**2))
-    u += np.exp(-((X-50.0)**2 + (Y-50.0)**2 + (Z-50.0)**2)/(2.0*15.0**2))
+def get_sphere(N):
+    """
+    Parameters
+    ----------
+    N: int
+        How many coordinates to sample along each axis
+    """
+    pix = np.linspace(-1, 1, N)
+    x, y, z = np.meshgrid(pix, pix, pix)
+    sigma = 0.2
+    u = np.exp(-((x-0.2)**2 + (y-0.2)**2 + (z-0.2)**2)/(sigma*sigma))
     VPos, ITris, _, _ = measure.marching_cubes(u, 0.2, gradient_direction="ascent")
-    saveOffFileExternal("bowlingpin.off", VPos, ITris)
+    save_off("sphere.off", VPos, ITris)
 
-def getCutSphere():
-    X, Y, Z = np.mgrid[:100, :100, :100]
-    u = np.exp(-((X-50.0)**2 + (Y-50.0)**2 + (Z-50.0)**2)/(2.0*15.0**2))
-    u -= np.exp(-((X-70.0)**2 + (Y-70.0)**2 + (Z-70.0)**2)/(2.0*6.0**2))
+def get_bowling_pin(N):
+    """
+    Parameters
+    ----------
+    N: int
+        How many coordinates to sample along each axis
+    """
+    pix = np.linspace(-1, 1, N)
+    x, y, z = np.meshgrid(pix, pix, pix)
+    sigma1 = 0.2
+    u = np.exp(-((x-0.2)**2 + (y-0.2)**2 + (z-0.2)**2)/(sigma1*sigma1))
+    sigma2 = 0.1
+    u += np.exp(-(x**2 + y**2 + z**2)/(sigma2*sigma2))
+    VPos, ITris, _, _ = measure.marching_cubes(u, 0.2, gradient_direction="ascent")
+    save_off("bowlingpin.off", VPos, ITris)
+
+def get_sphere_with_divet(N):
+    """
+    Parameters
+    ----------
+    N: int
+        How many coordinates to sample along each axis
+    """
+    pix = np.linspace(-1, 1, N)
+    x, y, z = np.meshgrid(pix, pix, pix)
+    sigma1 = 0.2
+    u = np.exp(-(x**2 + y**2 + z**2)/(sigma1*sigma1))
+    sigma2 = 0.1
+    u -= np.exp(-((x-0.2)**2 + (y-0.2)**2 + (z-0.2)**2)/(sigma2*sigma2))
     VPos, ITris, _, _ = measure.marching_cubes(u, 0.01, gradient_direction="ascent")
-    saveOffFileExternal("spherecut.off", VPos, ITris)
+    save_off("spherecut.off", VPos, ITris)
 
-def mySurface():
+def get_my_surface(N):
+    """
+    Parameters
+    ----------
+    N: int
+        How many coordinates to sample along each axis
+    """
     pix = np.linspace(0, 1, 100)
     x, y, z = np.meshgrid(pix, pix, pix)
-    f1 = getEllipsoidGaussian(x, y, z, [0.5, 0.5, 0.5], [1, 0, 0], 0.3, [0, 1, 0], 0.2, [0, 0, 1], 0.1)
-    f2 = getEllipsoidGaussian(x, y, z, [0.5, 0.5, 0.5], [1, 0, 0], 0.05, [0, 1, 0], 0.05, [0, 0, 1], 0.3)
-    u = f1 - 4*f2
+    ## TODO: Fill this in
+    u = 0*x ## TODO: This is a dummy value
+    
     VPos, ITris, _, _ = measure.marching_cubes(u, 0.1, gradient_direction="ascent")
-    saveOffFileExternal("mysurface.off", VPos, ITris)
+    save_off("mysurface.off", VPos, ITris)
 
 
 if __name__ == '__main__':
-    getBowlingPin()
-    getCutSphere()
-    mySurface()
+    get_sphere(100)
+    get_bowling_pin(100)
+    get_sphere_with_divet(100)
+    get_my_surface(100)
